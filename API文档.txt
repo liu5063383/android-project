@@ -1,0 +1,150 @@
+
+乐游SDK 及 API 文档
+
+全局定义：
+	PRIVATE_KEY: *aigame365#
+
+1、登陆API（SDK调用)：http://api.aigame365.com/api/loginService.shtml
+
+输入参数：
+	appid:应用程序ID
+	username:用户名
+	password:md5(用户密码 + *aigame365#)
+	partner:标识帐号来源（官方或不同的第三方接入商）
+	mac:md5(appid + username + password + partner + PRIVATE_KEY)
+	
+	注：appid 由平台生成
+
+输出：
+	示例:{"result":"1","errorcode":"0","info":{"uid":4,"sid":"ce650a55c7ccd45dbeef865b33bf96ff"}}
+
+	注：result:表示操作是否成功（1成功，0失败）；errorcode:返回失败时的代码，成功时为0； uid：表示该用户对应的用户标识；　sid：表示登录成功的会话ID，失败时info对象无效
+
+ＳＤＫ实现的需求：
+	游戏中调用登录接口方式：
+	1、强制以显示界面方式调用登录：提供appid,id，SDK会显示登录的界面，调用API，实现相应功能，并通知游戏相应的结果数据；
+	2、非强制显示界面方式调用登录：提供appid,id，SDK会检测系统是否有保存的帐号信息，如果有就用保存的帐号进行登录，如果成功则返回给游戏成功的信息及SID，失败则显示登录界面；
+	3、登录界面上有注册功能的连接，游戏中只会调用SDK的登录功能，不会直接调用注册功能；
+
+
+2、注册API（SDK调用)：http://api.aigame365.com/api/regService.shtml
+
+输入参数：（同登录）
+
+输出：（同登录）
+
+	示例:{"result":"0","errorcode":"1006","info":{"uid":"","sid":""}}
+
+
+3、二次认证API（游戏服务端调用）：http://api.aigame365.com/api/checkAuth.shtml
+
+输入参数：
+	appid:应用程序ID
+	uid:用户id
+	sid:由登录、注册API产生，保存在帐号服务器
+	mac:md5(appid+uid+sid+PRIVATE_KEY)
+	
+输出：
+	｛“result”:"0/1", "errorcode":"xxxx", "info":{"uid":"xxxxxx", "sid":"xxxxxx"}}
+
+	注：result:表示登录/注册操作是否成功（1成功，0失败）；errorcode:返回失败时的代码，成功时为0；uid：表示该用户对应的用户标识；　sid：表示登录成功的会话ID，失败时info对象无效
+
+
+4、计费API（SDK调用）: http://api.aigame365.com/api/payMoney.shtml
+
+输入参数：
+	appid:应用程序ID
+	serverid:游戏区服ID
+	orderid:游戏端产生的订单号
+	uid:扣费的用户ID
+	money:扣费金额(元）
+	productid:购买的游戏中的产品编号
+	productname:购买的游戏中的产品名称
+	mac:md5(appid + serverid + orderid + uid + money + productid + PRIVATE_KEY)
+
+输出：
+	{"result":0/1, "errorcode":xxxx,"amount"：xxx}
+
+	注：result:表示该订单计费是否成功（1成功，0失败），errorcode:成功时为0，失败时表示失败原因代码；amount：表示帐号余额
+
+
+
+5、订单查询API（游戏服务端调用）：http://api.aigame365.com/api/queryOrder.shtml
+
+输入参数:
+	orderid:游戏端产生的订单号
+	mac:md5(orderid + PRIVATE_KEY)
+
+输出：
+	{"result":0/1, "errorcode":xxxx, "info":{"uid":xxxx, "money":xxxx, "productid":xxxx, "productname":xxxx }}
+
+	注：result:表示该订单扣费（或是通过充值并扣费）是否成功（1成功，0失败），errorcode:成功时为0，失败时表示失败原因代码,info对象中的字段与扣费API输入参数相同
+
+
+6、充值页面地址（SDK调用）：http://api.aigame365.com/pay/index.shtml
+
+（注：POST方式加载页面）
+
+输入参数：
+	appid:应用程序ID
+	serverid:游戏区服ID
+	orderid:游戏端产生的订单号
+	uid:充值的用户ID
+	money:充值成功后需扣费的金额(元）
+	productid:本次充值后购买的游戏中的产品编号
+	productname:购买的游戏中的产品名称
+	mac:md5(appid + serverid + orderid + uid + money + productid + PRIVATE_KEY)
+
+输出：
+	充值成功，提交成功，取消等状态，通知SDK 相关的状态;
+	SDK需求：这里需要SDK判断本次网页中支付的状态？充值成功，正常提交完成，或用户中取消操作，并把把状态返回给游戏。
+
+	注：充值成功，用户充值金额按1：1比例在DB中存储
+
+
+7、找回密码地址（SDK加载）：http://api.aigame365.com/api/getpassword.shtml
+
+输入参数：
+	appid:应用程序ID
+	mac:md5(appid + PRIVATE_KEY)
+
+
+8、充值记录地址（SDK加载）：http://api.aigame365.com/api/orderList.shtml
+
+输入参数：
+	appid:应用程序ID
+	uid:充值的用户ID
+	mac:md5(appid + uid + PRIVATE_KEY)
+
+
+
+错误码列表：
+
+二次认证API:
+
+1012-sid为空
+1013-uid为空
+1008-帐号不存在
+1014-sid与服务器不相符
+
+注册API:
+
+1001-帐号为空
+1002-密码为空
+1003-加密不正确
+1004-帐号字数范围不合适,不能小于3个字符
+1005-帐号只能是数字或字母
+1006-此帐号已存在
+1008-帐号不存在
+1010-没有此平台号
+1011-来源id为空
+
+登陆API:
+
+1001-帐号为空
+1002-密码为空
+1003-加密不正确
+1008-没有此帐号
+1011-来源id为空
+1010-没有此平台号
+
